@@ -182,3 +182,86 @@ def cancel_sale(user):
         print("Nothing was cancelled.")
 
 
+# expenses
+
+def show_expenses(expenses):
+    if len(expenses) == 0:
+        print("No expenses yet.")
+        return
+    print(f"{'No.':<5}{'Date':<12}{'What for':<42}{'Amount':>10}  Added by")
+    print("-" * 77)
+    for expense in expenses:
+        added_by = expense["added_by"]
+        if added_by is None:
+            added_by = "(deleted user)"
+        print(f"{expense['id']:<5}{expense['expense_date']:<12}{expense['description']:<42}"
+              f"{expense['amount']:>10,}  {added_by}")
+    total = sum([expense["amount"] for expense in expenses])
+    print("-" * 77)
+    print(f"Total expenses: {total:,} RWF")
+
+
+def expenses_menu(user):
+    while True:
+        print("\n--- Expenses ---")
+        print("1. Record an expense")
+        print("2. View all expenses")
+        print("3. Edit an expense")
+        print("4. Delete an expense")
+        print("0. Back")
+        choice = input("Choose an option: ").strip()
+
+        try:
+            if choice == "1":
+                add_expense(user)
+            elif choice == "2":
+                show_expenses(shop_logic.get_expenses(user))
+            elif choice == "3":
+                edit_expense(user)
+            elif choice == "4":
+                delete_expense(user)
+            elif choice == "0":
+                break
+            else:
+                print("Please choose a number from the menu.")
+        except ValueError as error:
+            print(error)
+
+
+def add_expense(user):
+    description = inputs.ask("What was it for (for example transport): ", checks.check_description)
+    amount = inputs.ask("Amount (RWF): ", checks.check_positive_number)
+    expense_date = inputs.ask("Date (YYYY-MM-DD, Enter for today): ",
+                              checks.check_date, checks.today())
+    shop_logic.add_expense(user, description, amount, expense_date)
+    print(f"Expense recorded: {description}, {amount:,} RWF.")
+
+
+def edit_expense(user):
+    show_expenses(shop_logic.get_expenses(user))
+    expense_id = inputs.ask("Expense number to edit: ", checks.check_positive_number)
+    expense = shop_logic.get_expense(user, expense_id)
+
+    print("Press Enter to keep the current value.")
+    description = inputs.ask(f"What was it for [{expense['description']}]: ",
+                             checks.check_description, expense["description"])
+    amount = inputs.ask(f"Amount [{expense['amount']}]: ",
+                        checks.check_positive_number, expense["amount"])
+    expense_date = inputs.ask(f"Date [{expense['expense_date']}]: ",
+                              checks.check_date, expense["expense_date"])
+
+    shop_logic.update_expense(user, expense_id, description, amount, expense_date)
+    print("Expense updated.")
+
+
+def delete_expense(user):
+    show_expenses(shop_logic.get_expenses(user))
+    expense_id = inputs.ask("Expense number to delete: ", checks.check_positive_number)
+    expense = shop_logic.get_expense(user, expense_id)
+    if inputs.ask_yes(f"Delete '{expense['description']}' ({expense['amount']:,} RWF)?"):
+        shop_logic.delete_expense(user, expense_id)
+        print("Expense deleted.")
+    else:
+        print("Nothing was deleted.")
+
+
